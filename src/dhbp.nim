@@ -265,7 +265,7 @@ proc generateDockerhubLibraryFile(context: Context): int =
   echo """# this file is generated via https://github.com/moigagoo/dhbp.git
 
 Maintainers: Constantine Molchanov <moigagoo@duck.com> (@moigagoo),
-             Akito Kitsune <akito.kitsune@protonmail.com> (@theAkito)
+             Akito <the@akito.ooo> (@theAkito)
 
 GitRepo: https://github.com/nim-lang/docker-images.git
 GitCommit: $#""" % gitCommit
