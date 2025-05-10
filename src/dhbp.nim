@@ -10,6 +10,9 @@ proc isDefault(props: JsonNode): bool =
 proc isLatest(props: JsonNode): bool =
   props.getOrDefault("latest").getBool
 
+proc getBranch(version: string): string =
+  version.split(".")[0]
+
 proc getTags(
     version, base: tuple[key: string, val: JsonNode], flavor: string
 ): seq[string] =
@@ -21,6 +24,7 @@ proc getSharedTags(
   if version.val.isLatest and base.val.isDefault:
     if flavor == "regular":
       result.add "latest"
+      result.add getBranch(version.key)
 
     result.add flavor
     result.add(["latest", flavor].join("-"))
