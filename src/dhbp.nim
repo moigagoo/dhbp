@@ -211,7 +211,7 @@ proc generateTagListMd(context: Context): int =
     for base in bases.pairs:
       for flavor in flavors.pairs:
         let
-          dockerfileDir = dockerfilesDir / version.key / flavor.key
+          dockerfileDir = [dockerfilesDir, version.key, flavor.key].join("/")
           tags = getTags(version, base, flavor)
           sharedTags = getSharedTags(version, base, flavor)
 
