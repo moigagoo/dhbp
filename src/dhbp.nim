@@ -4,48 +4,27 @@ import climate
 
 import dhbp/flavors/[slim, regular]
 
+proc isLatest(props: JsonNode): bool =
+  newJString("latest") in props.getOrDefault("tags").getElems()
+
 proc isDefault(props: JsonNode): bool =
   props.getOrDefault("default").getBool
 
-proc isLatest(props: JsonNode): bool =
-  props.getOrDefault("latest").getBool
-
-proc getBranch(version: string): string =
-  version.split(".")[0]
-
-proc getTags(
-    version, base: tuple[key: string, val: JsonNode], flavor: string
-): seq[string] =
-  result.add([version.key, base.key, flavor].join("-"))
+proc getTags(version, base, flavor: tuple[key: string, val: JsonNode]): seq[string] =
+  result.add([version.key, base.key, flavor.key].join("-"))
 
 proc getSharedTags(
-    version, base: tuple[key: string, val: JsonNode], flavor: string
+    version, base, flavor: tuple[key: string, val: JsonNode]
 ): seq[string] =
-  if version.val.isLatest and base.val.isDefault:
-    if flavor == "regular":
-      result.add "latest"
-      result.add getBranch(version.key)
-
-    result.add flavor
-    result.add(["latest", flavor].join("-"))
-
-  if flavor == "regular":
+  for tag in version.val.getOrDefault("tags").getElems():
     if base.val.isDefault:
-      result.add version.key
+      result.add([tag.getStr(), flavor.key].join("-"))
 
-    if version.val.isLatest:
-      result.add(["latest", base.key].join("-"))
+    if flavor.val.isDefault:
+      result.add([tag.getStr(), base.key].join("-"))
 
-    result.add([version.key, base.key].join("-"))
-
-  if version.val.isLatest:
-    if flavor == "regular":
-      result.add base.key
-
-    result.add(["latest", base.key, flavor].join("-"))
-
-  if base.val.isDefault:
-    result.add([version.key, flavor].join("-"))
+    if base.val.isDefault and flavor.val.isDefault:
+      result.add(tag.getStr())
 
 proc generateDockerfile(
     version, base, flavor: string,
@@ -150,7 +129,6 @@ proc buildAndPushImages(context: Context): int =
     labels =
       {"authors": "https://github.com/nim-lang/docker-images/graphs/contributors"}
     tagPrefix = "nimlang/nim"
-    flavors = ["slim", "regular"]
     dockerfilesDir = "Dockerfiles"
 
   var
@@ -181,20 +159,21 @@ proc buildAndPushImages(context: Context): int =
 
   let
     config = parseFile(configFile)
-    bases = config["bases"]
     versions = config["versions"]
+    bases = config["bases"]
+    flavors = config["flavors"]
 
   for version in versions.pairs:
     if buildAll or version.key in targets or (buildLatest and version.val.isLatest):
       for base in bases.pairs:
-        for flavor in flavors:
+        for flavor in flavors.pairs:
           let
-            dockerfileDir = dockerfilesDir / version.key / flavor
+            dockerfileDir = dockerfilesDir / version.key / flavor.key
             tags = getTags(version, base, flavor)
 
           echo "Building and pushing $# from $#... " % [tags[0], dockerfileDir]
 
-          generateDockerfile(version.key, base.key, flavor, labels, dockerfileDir)
+          generateDockerfile(version.key, base.key, flavor.key, labels, dockerfileDir)
 
           if not dryRun:
             buildAndPushImage(tags, tagPrefix, dockerfileDir)
@@ -211,60 +190,63 @@ proc buildAndPushImages(context: Context): int =
             echo "Testing $#... " % tags[0]
 
             if not dryRun:
-              testImage("$#:$#" % [tagPrefix, tags[0]], flavor)
+              testImage("$#:$#" % [tagPrefix, tags[0]], flavor.key)
 
             echo "Done!"
 
 proc generateTagListMd(context: Context): int =
   const
     repoLocation = "https://github.com/nim-lang/docker-images/blob/develop"
-    flavors = ["regular", "slim"]
     dockerfilesDir = "Dockerfiles"
 
   var configFile = "config.json"
 
   let
     config = parseFile(configFile)
-    bases = config["bases"]
     versions = config["versions"]
+    bases = config["bases"]
+    flavors = config["flavors"]
 
   for version in versions.pairs:
     for base in bases.pairs:
-      for flavor in flavors:
+      for flavor in flavors.pairs:
         let
-          dockerfileDir = dockerfilesDir / version.key / flavor
+          dockerfileDir = dockerfilesDir / version.key / flavor.key
           tags = getTags(version, base, flavor)
           sharedTags = getSharedTags(version, base, flavor)
 
         echo(
-          "- [$#]($#)" %
-            [tags.mapIt("`" & it & "`").join(", "), [repoLocation, dockerfileDir, "Dockerfile"].join("/")]
+          "- [$#]($#)" % [
+            tags.mapIt("`" & it & "`").join(", "),
+            [repoLocation, dockerfileDir, "Dockerfile"].join("/"),
+          ]
         )
 
         if len(sharedTags) > 0:
           echo(
-            "    - [$#]($#)" %
-              [sharedTags.mapIt("`" & it & "`").join(", "), [repoLocation, dockerfileDir, "Dockerfile"].join("/")]
+            "    - [$#]($#)" % [
+              sharedTags.mapIt("`" & it & "`").join(", "),
+              [repoLocation, dockerfileDir, "Dockerfile"].join("/"),
+            ]
           )
 
 proc generateDockerhubLibraryFile(context: Context): int =
   var
     configFile = "config.json"
     gitCommit = ""
-    
+
   context.arg:
     gitCommit = arg
   do:
     quit "`commit` argument is mandatory"
-  
-  const
-    flavors = ["regular", "slim"]
-    dockerfilesDir = "Dockerfiles"
+
+  const dockerfilesDir = "Dockerfiles"
 
   let
     config = parseFile(configFile)
-    bases = config["bases"]
     versions = config["versions"]
+    bases = config["bases"]
+    flavors = config["flavors"]
 
   echo """# this file is generated via https://github.com/moigagoo/dhbp.git
 
@@ -272,13 +254,14 @@ Maintainers: Constantine Molchanov <moigagoo@duck.com> (@moigagoo),
              Akito <the@akito.ooo> (@theAkito)
 
 GitRepo: https://github.com/nim-lang/docker-images.git
-GitCommit: $#""" % gitCommit
-    
+GitCommit: $#""" %
+    gitCommit
+
   for version in versions.pairs:
     for base in bases.pairs:
-      for flavor in flavors:
+      for flavor in flavors.pairs:
         let
-          dockerfileDir = dockerfilesDir / version.key / flavor
+          dockerfileDir = dockerfilesDir / version.key / flavor.key
           tags = getTags(version, base, flavor)
           sharedTags = getSharedTags(version, base, flavor)
 
@@ -290,7 +273,7 @@ GitCommit: $#""" % gitCommit
 
         echo "Architectures: amd64, arm32v7, arm64v8"
         echo "Directory: $#" % dockerfileDir
-  
+
 const commands = {
   "build-and-push": buildAndPushImages,
   "setup": createBuilder,
