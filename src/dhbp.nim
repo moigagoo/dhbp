@@ -16,15 +16,22 @@ proc getTags(version, base, flavor: tuple[key: string, val: JsonNode]): seq[stri
 proc getSharedTags(
     version, base, flavor: tuple[key: string, val: JsonNode]
 ): seq[string] =
+  var tagBases: seq[string]
+
+  tagBases.add(version.key)
+
   for tag in version.val.getOrDefault("tags").getElems():
+    tagBases.add(tag.getStr())
+
+  for tagBase in tagBases:
     if base.val.isDefault:
-      result.add([tag.getStr(), flavor.key].join("-"))
+      result.add([tagBase, flavor.key].join("-"))
 
     if flavor.val.isDefault:
-      result.add([tag.getStr(), base.key].join("-"))
+      result.add([tagBase, base.key].join("-"))
 
     if base.val.isDefault and flavor.val.isDefault:
-      result.add(tag.getStr())
+      result.add(tagBase)
 
 proc generateDockerfile(
     version, base, flavor: string,
