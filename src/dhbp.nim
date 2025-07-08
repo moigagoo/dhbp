@@ -175,7 +175,7 @@ proc buildAndPushImages(context: Context): int =
       for base in bases.pairs:
         for flavor in flavors.pairs:
           let
-            dockerfileDir = dockerfilesDir / version.key / flavor.key
+            dockerfileDir = dockerfilesDir / version.key / flavor.key / base.key
             tags = getTags(version, base, flavor)
 
           echo "Building and pushing $# from $#... " % [tags[0], dockerfileDir]
