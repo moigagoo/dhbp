@@ -1,7 +1,7 @@
 #? stdtmpl
 #proc ubuntu*(version: string,
 #             labels: openarray[(string, string)] = {:}): string =
-FROM ubuntu:noble
+FROM ubuntu:latest
 #  for label, value in labels.items:
 LABEL $label="$value"
 #  end for
