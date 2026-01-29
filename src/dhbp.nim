@@ -259,7 +259,6 @@ proc generateDockerhubLibraryFile(context: Context): int =
 
 Maintainers: Constantine Molchanov <moigagoo@duck.com> (@moigagoo),
              Akito <the@akito.ooo> (@theAkito)
-
 GitRepo: https://github.com/nim-lang/docker-images.git
 GitCommit: $#""" %
     gitCommit
