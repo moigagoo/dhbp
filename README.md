@@ -2,6 +2,8 @@
 
 A tool to build Nim Docker images and push them to Docker Hub.
 
+The title means Docker Hub Builder and Pusher.
+
 
 ## Usage
 
@@ -32,3 +34,9 @@ Use custom config file (by default, `config.json` in the current directory is us
 Dry run (nothing is built or pushed, use to check the config and command args):
 
   $ dhbp build-and-push --dry <version1> <version2> ...
+
+Generate Docker library file:
+
+  $ dhbp generate-docker-library-file <git_commit_hash>
+
+`<git_commit_hash>` is the hash of the commit pointing to the latest version commit in https://github.com/nim-lang/docker-images.
