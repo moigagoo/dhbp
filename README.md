@@ -35,8 +35,8 @@ Dry run (nothing is built or pushed, use to check the config and command args):
 
   $ dhbp build-and-push --dry <version1> <version2> ...
 
-Generate Docker library file:
+Generate Docker Hub library file:
 
-  $ dhbp generate-docker-library-file <git_commit_hash>
+  $ dhbp generate-dockerhub-library-file <git_commit_hash>
 
 `<git_commit_hash>` is the hash of the commit pointing to the latest version commit in https://github.com/nim-lang/docker-images.
