@@ -1,6 +1,6 @@
 # Package
 
-version       = "1.1.7"
+version       = "2.0.0"
 author        = "Constantine Molchanov"
 description   = "App to build Nim Docker images and push them to Docker Hub."
 license       = "MIT"
