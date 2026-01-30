@@ -4,34 +4,35 @@ import climate
 
 import dhbp/flavors/[slim, regular]
 
-proc isLatest(props: JsonNode): bool =
-  newJString("latest") in props.getOrDefault("tags").getElems()
-
 proc isDefault(props: JsonNode): bool =
   props.getOrDefault("default").getBool
 
 proc getTags(version, base, flavor: tuple[key: string, val: JsonNode]): seq[string] =
-  result.add([version.key, base.key, flavor.key].join("-"))
-
-proc getSharedTags(
-    version, base, flavor: tuple[key: string, val: JsonNode]
-): seq[string] =
-  var tagBases: seq[string]
-
-  tagBases.add(version.key)
+  var tagBases: seq[string] = @[version.key]
 
   for tag in version.val.getOrDefault("tags").getElems():
     tagBases.add(tag.getStr())
 
-  for tagBase in tagBases:
-    if base.val.isDefault:
-      result.add([tagBase, flavor.key].join("-"))
-
-    if flavor.val.isDefault:
-      result.add([tagBase, base.key].join("-"))
-
+  if version.val.isDefault:
     if base.val.isDefault and flavor.val.isDefault:
-      result.add(tagBase)
+      result.add("latest")
+    elif not base.val.isDefault and flavor.val.isDefault:
+      result.add(base.key)
+    elif base.val.isDefault and not flavor.val.isDefault:
+      result.add(flavor.key)
+    else:
+      result.add([base.key, flavor.key].join("-"))
+
+  for tagBase in tagBases:
+    var components: seq[string] = @[tagBase]
+
+    if not base.val.isDefault:
+      components.add(base.key)
+
+    if not flavor.val.isDefault:
+      components.add(flavor.key)
+
+    result.add(components.join("-"))
 
 proc generateDockerfile(
     version, base, flavor: string,
@@ -177,7 +178,7 @@ proc buildAndPushImages(context: Context): int =
     flavors = config["flavors"]
 
   for version in versions.pairs:
-    if buildAll or version.key in targets or (buildLatest and version.val.isLatest):
+    if buildAll or version.key in targets or (buildLatest and version.val.isDefault):
       for base in bases.pairs:
         for flavor in flavors.pairs:
           let
@@ -226,7 +227,6 @@ proc generateTagListMd(context: Context): int =
         let
           dockerfileDir = [dockerfilesDir, version.key, flavor.key, base.key].join("/")
           tags = getTags(version, base, flavor)
-          sharedTags = getSharedTags(version, base, flavor)
 
         echo(
           "- [$#]($#)" % [
@@ -234,14 +234,6 @@ proc generateTagListMd(context: Context): int =
             [repoLocation, dockerfileDir, "Dockerfile"].join("/"),
           ]
         )
-
-        if len(sharedTags) > 0:
-          echo(
-            "    - [$#]($#)" % [
-              sharedTags.mapIt("`" & it & "`").join(", "),
-              [repoLocation, dockerfileDir, "Dockerfile"].join("/"),
-            ]
-          )
 
 proc generateDockerhubLibraryFile(context: Context): int =
   var
@@ -275,14 +267,9 @@ GitCommit: $#""" %
         let
           dockerfileDir = [dockerfilesDir, version.key, flavor.key, base.key].join("/")
           tags = getTags(version, base, flavor)
-          sharedTags = getSharedTags(version, base, flavor)
 
         echo ""
         echo "Tags: $#" % tags.join(", ")
-
-        if len(sharedTags) > 0:
-          echo "SharedTags: $#" % sharedTags.join(", ")
-
         echo "Architectures: amd64, arm32v7, arm64v8"
         echo "Directory: $#" % dockerfileDir
 
