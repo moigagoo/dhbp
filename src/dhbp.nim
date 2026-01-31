@@ -34,28 +34,24 @@ proc getTags(version, base, flavor: tuple[key: string, val: JsonNode]): seq[stri
 
     result.add(components.join("-"))
 
-proc generateDockerfile(
-    version, base, flavor: string,
-    labels: openarray[(string, string)],
-    dockerfileDir: string,
-) =
+proc generateDockerfile(version, base, flavor: string, dockerfileDir: string) =
   var content = ""
 
   case flavor
   of "slim":
     case base
     of "ubuntu":
-      content = slim.ubuntu(version, labels)
+      content = slim.ubuntu(version)
     of "alpine":
-      content = slim.alpine(version, labels)
+      content = slim.alpine(version)
     else:
       discard
   of "regular":
     case base
     of "ubuntu":
-      content = regular.ubuntu(version, labels)
+      content = regular.ubuntu(version)
     of "alpine":
-      content = regular.alpine(version, labels)
+      content = regular.alpine(version)
     else:
       discard
   else:
@@ -140,8 +136,6 @@ proc createBuilder(context: Context): int =
 
 proc buildAndPushImages(context: Context): int =
   const
-    labels =
-      {"authors": "https://github.com/nim-lang/docker-images/graphs/contributors"}
     tagPrefix = "nimlang/nim"
     dockerfilesDir = "Dockerfiles"
 
@@ -187,7 +181,7 @@ proc buildAndPushImages(context: Context): int =
 
           echo "Building and pushing $# from $#... " % [tags[0], dockerfileDir]
 
-          generateDockerfile(version.key, base.key, flavor.key, labels, dockerfileDir)
+          generateDockerfile(version.key, base.key, flavor.key, dockerfileDir)
 
           if not dryRun:
             buildAndPushImage(tags, tagPrefix, dockerfileDir)

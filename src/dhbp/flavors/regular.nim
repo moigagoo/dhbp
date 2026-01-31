@@ -1,5 +1,5 @@
 #? stdtmpl
-#proc ubuntu*(version: string, labels: openarray[(string, string)] = {:}): string =
+#proc ubuntu*(version: string): string =
 #  result = ""
 FROM ubuntu:noble
 
@@ -43,7 +43,7 @@ WORKDIR /app
 CMD ["nim", "--version"]
 #end proc
 #
-#proc alpine*(version: string, labels: openarray[(string, string)] = {:}): string =
+#proc alpine*(version: string): string =
 #  result = ""
 FROM alpine:3.20
 
