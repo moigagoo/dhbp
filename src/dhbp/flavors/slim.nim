@@ -6,10 +6,6 @@ FROM ubuntu:noble
 ENV NIM_VERSION=$version
 ENV PATH="/usr/local/bin:$${PATH}"
 
-#  for label, value in labels.items:
-LABEL $label="$value"
-#  end for
-
 RUN set -eux; \
     apt-get update; \
     apt-get install -y --no-install-recommends \
@@ -44,10 +40,6 @@ FROM alpine:3.20
 
 ENV NIM_VERSION=$version
 ENV PATH="/usr/local/bin:$${PATH}"
-
-#  for label, value in labels.items:
-LABEL $label="$value"
-#  end for
 
 RUN set -eux; \
     apk add --no-cache \
